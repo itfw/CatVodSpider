@@ -1,70 +1,85 @@
 package com.github.catvod.spider;
 
+import com.github.catvod.crawler.Spider;
 import com.github.catvod.crawler.SpiderDebug;
 import com.github.catvod.net.OkHttp;
+import com.github.catvod.utils.ProxyVideo;
+import com.github.catvod.utils.Util;
+import com.google.gson.Gson;
 
 import java.io.ByteArrayInputStream;
-import java.lang.reflect.Method;
-import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
-public class Proxy {
+public class Proxy extends Spider {
 
-    private static Method method;
-    private static int port;
+    private static int port = -1;
 
     public static Object[] proxy(Map<String, String> params) throws Exception {
         switch (params.get("do")) {
             case "ck":
-                return new Object[]{200, "text/plain; charset=utf-8", new ByteArrayInputStream("ok".getBytes(StandardCharsets.UTF_8))};
-            case "mqitv":
-                return MQiTV.proxy(params);
+                return new Object[]{200, "text/plain; charset=utf-8", new ByteArrayInputStream("ok".getBytes("UTF-8"))};
+            case "ali":
+                return Ali.proxy(params);
+            case "quark":
+                return Quark.proxy(params);
+            case "uc":
+                return UC.proxy(params);
             case "bili":
                 return Bili.proxy(params);
             case "webdav":
                 return WebDAV.vod(params);
             case "local":
                 return Local.proxy(params);
+            case "proxy":
+                return commonProxy(params);
             default:
                 return null;
         }
     }
 
-    public static void init() {
-        try {
-            Class<?> clz = Class.forName("com.github.catvod.Proxy");
-            port = (int) clz.getMethod("getPort").invoke(null);
-            method = clz.getMethod("getUrl", boolean.class);
-            SpiderDebug.log("本地代理端口:" + port);
-        } catch (Throwable e) {
-            findPort();
+    private static final List<String> keys = Arrays.asList("url", "header", "do", "Content-Type", "User-Agent", "Host");
+
+    private static Object[] commonProxy(Map<String, String> params) throws Exception {
+        String url = Util.base64Decode(params.get("url"));
+        Map<String, String> header = new Gson().fromJson(Util.base64Decode(params.get("header")), Map.class);
+        if (header == null) header = new HashMap<>();
+        List<String> keys = Arrays.asList("range", "connection", "accept-encoding");
+        for (String key : params.keySet()) {
+            if (keys.contains(key.toLowerCase())) {
+                header.put(key, params.get(key));
+            }
+        }
+        /*for (Map.Entry<String, String> entry : params.entrySet()) {
+            if (!keys.contains(entry.getKey())) header.put(entry.getKey(), entry.getValue());
+        }*/
+        return ProxyVideo.proxyMultiThread(url, header);
+    }
+
+
+    static void adjustPort() {
+        if (Proxy.port > 0) return;
+        int port = 9978;
+        while (port < 10000) {
+            String resp = OkHttp.string("http://127.0.0.1:" + port + "/proxy?do=ck", null);
+            if (resp.equals("ok")) {
+                SpiderDebug.log("Found local server port " + port);
+                Proxy.port = port;
+                break;
+            }
+            port++;
         }
     }
 
     public static int getPort() {
+        adjustPort();
         return port;
     }
 
     public static String getUrl() {
-        return getUrl(true);
-    }
-
-    public static String getUrl(boolean local) {
-        try {
-            return (String) method.invoke(null, local);
-        } catch (Throwable e) {
-            return "http://127.0.0.1:" + port + "/proxy";
-        }
-    }
-
-    private static void findPort() {
-        if (port > 0) return;
-        for (int p = 8964; p < 9999; p++) {
-            if ("ok".equals(OkHttp.string("http://127.0.0.1:" + p + "/proxy?do=ck", null))) {
-                SpiderDebug.log("本地代理端口:" + p);
-                port = p;
-                break;
-            }
-        }
+        adjustPort();
+        return "http://127.0.0.1:" + port + "/proxy";
     }
 }

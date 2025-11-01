@@ -2,7 +2,6 @@ package com.github.catvod.net;
 
 import android.text.TextUtils;
 
-import com.github.catvod.crawler.SpiderDebug;
 import com.github.catvod.utils.Util;
 
 import java.io.IOException;
@@ -38,10 +37,10 @@ class OkRequest {
         this.method = method;
         this.params = params;
         this.header = header;
-        this.buildRequest();
+        getInstance();
     }
 
-    private void buildRequest() {
+    private void getInstance() {
         Request.Builder builder = new Request.Builder();
         if (method.equals(OkHttp.GET) && params != null) setParams();
         if (method.equals(OkHttp.POST)) builder.post(getRequestBody());
@@ -63,10 +62,10 @@ class OkRequest {
     }
 
     public OkResult execute(OkHttpClient client) {
-        try (Response res = client.newCall(request).execute()) {
-            return new OkResult(res.code(), res.body().string(), res.headers().toMultimap());
+        try {
+            Response response = client.newCall(request).execute();
+            return new OkResult(response.code(), response.body().string(), response.headers().toMultimap());
         } catch (IOException e) {
-            SpiderDebug.log(e);
             return new OkResult();
         }
     }

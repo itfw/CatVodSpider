@@ -29,7 +29,7 @@ public class Result {
     @SerializedName("format")
     private String format;
     @SerializedName("danmaku")
-    private List<Danmaku> danmaku;
+    private String danmaku;
     @SerializedName("click")
     private String click;
     @SerializedName("msg")
@@ -58,7 +58,9 @@ public class Result {
     public static String string(List<Class> classes, List<Vod> list, LinkedHashMap<String, List<Filter>> filters) {
         return Result.get().classes(classes).vod(list).filters(filters).string();
     }
-
+    public static String string(Integer page,Integer pagecount,Integer limit,Integer total,List<Vod> list){
+        return Result.get().page(page,pagecount,limit,total).vod(list).string();
+    }
     public static String string(List<Class> classes, List<Vod> list, JSONObject filters) {
         return Result.get().classes(classes).vod(list).filters(filters).string();
     }
@@ -83,11 +85,8 @@ public class Result {
         return Result.get().classes(classes).vod(list).string();
     }
 
-    public static String string(List<?> list) {
-        if (list == null || list.isEmpty()) return "";
-        if (list.get(0) instanceof Vod) return Result.get().vod((List<Vod>) list).string();
-        if (list.get(0) instanceof Class) return Result.get().classes((List<Class>) list).string();
-        return "";
+    public static String string(List<Vod> list) {
+        return Result.get().vod(list).string();
     }
 
     public static String string(Vod item) {
@@ -178,7 +177,7 @@ public class Result {
         return this;
     }
 
-    public Result danmaku(List<Danmaku> danmaku) {
+    public Result danmaku(String danmaku) {
         this.danmaku = danmaku;
         return this;
     }

@@ -42,7 +42,8 @@ public class WebDAV extends Spider {
     private void fetchRule() {
         if (drives != null && !drives.isEmpty()) return;
         if (extend.startsWith("http")) extend = OkHttp.string(extend);
-        drives = Drive.arrayFrom(extend);
+        Drive drive = Drive.objectFrom(extend);
+        drives = drive.getDrives();
     }
 
     private String getExt(DavResource item) {
@@ -144,7 +145,7 @@ public class WebDAV extends Spider {
 
     private List<DavResource> getSubs(List<DavResource> items) {
         List<DavResource> subs = new ArrayList<>();
-        for (DavResource item : items) if (Util.isSub(item.getName())) subs.add(item);
+        for (DavResource item : items) if (Util.isSub(getExt(item))) subs.add(item);
         return subs;
     }
 
@@ -174,7 +175,7 @@ public class WebDAV extends Spider {
     }
 
     private String getProxyUrl(String url) {
-        return "proxy://do=webdav&url=" + url;
+        return Proxy.getUrl() + "?do=webdav&url=" + url;
     }
 
     public static Object[] vod(Map<String, String> params) throws IOException {

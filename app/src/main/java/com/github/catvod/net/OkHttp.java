@@ -1,20 +1,12 @@
 package com.github.catvod.net;
 
-import android.annotation.SuppressLint;
-
 import com.github.catvod.crawler.Spider;
 
 import java.io.IOException;
-import java.security.SecureRandom;
-import java.security.cert.X509Certificate;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
-
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.X509TrustManager;
 
 import okhttp3.Dns;
 import okhttp3.Headers;
@@ -24,12 +16,11 @@ import okhttp3.Response;
 
 public class OkHttp {
 
-    private static final long TIMEOUT = TimeUnit.SECONDS.toMillis(15);
-
     public static final String POST = "POST";
     public static final String GET = "GET";
 
     private OkHttpClient client;
+
 
     private static class Loader {
         static volatile OkHttp INSTANCE = new OkHttp();
@@ -39,16 +30,20 @@ public class OkHttp {
         return Loader.INSTANCE;
     }
 
+    public static Response newCall(Request request) throws IOException {
+        return client().newCall(request).execute();
+    }
+
     public static Response newCall(String url) throws IOException {
         return client().newCall(new Request.Builder().url(url).build()).execute();
     }
 
-    public static String string(String url) {
-        return string(url, null);
+    public static Response newCall(String url, Map<String, String> header) throws IOException {
+        return client().newCall(new Request.Builder().url(url).headers(Headers.of(header)).build()).execute();
     }
 
-    public static String string(String url, long timeout) {
-        return string(url, null, null, timeout);
+    public static String string(String url) {
+        return string(url, null);
     }
 
     public static String string(String url, Map<String, String> header) {
@@ -56,11 +51,11 @@ public class OkHttp {
     }
 
     public static String string(String url, Map<String, String> params, Map<String, String> header) {
-        return new OkRequest(GET, url, params, header).execute(client()).getBody();
+        return url.startsWith("http") ? new OkRequest(GET, url, params, header).execute(client()).getBody() : "";
     }
 
-    public static String string(String url, Map<String, String> params, Map<String, String> header, long timeout) {
-        return new OkRequest(GET, url, params, header).execute(client(timeout)).getBody();
+    public static OkResult get(String url, Map<String, String> params, Map<String, String> header) {
+        return new OkRequest(GET, url, params, header).execute(client());
     }
 
     public static String post(String url, Map<String, String> params) {
@@ -82,6 +77,9 @@ public class OkHttp {
     public static String getLocation(String url, Map<String, String> header) throws IOException {
         return getLocation(client().newBuilder().followRedirects(false).followSslRedirects(false).build().newCall(new Request.Builder().url(url).headers(Headers.of(header)).build()).execute().headers().toMultimap());
     }
+    public static Map<String, List<String>>  getLocationHeader(String url, Map<String, String> header) throws IOException {
+        return client().newBuilder().followRedirects(false).followSslRedirects(false).build().newCall(new Request.Builder().url(url).headers(Headers.of(header)).build()).execute().headers().toMultimap();
+    }
 
     public static String getLocation(Map<String, List<String>> headers) {
         if (headers == null) return null;
@@ -96,11 +94,7 @@ public class OkHttp {
     }
 
     private static OkHttpClient.Builder getBuilder() {
-        return new OkHttpClient.Builder().dns(safeDns()).connectTimeout(TIMEOUT, TimeUnit.MILLISECONDS).readTimeout(TIMEOUT, TimeUnit.MILLISECONDS).writeTimeout(TIMEOUT, TimeUnit.MILLISECONDS).hostnameVerifier((hostname, session) -> true).sslSocketFactory(getSSLContext().getSocketFactory(), trustAllCertificates());
-    }
-
-    private static OkHttpClient client(long timeout) {
-        return client().newBuilder().connectTimeout(timeout, TimeUnit.MILLISECONDS).readTimeout(timeout, TimeUnit.MILLISECONDS).writeTimeout(timeout, TimeUnit.MILLISECONDS).build();
+        return new OkHttpClient.Builder().dns(safeDns()).connectTimeout(30, TimeUnit.SECONDS).readTimeout(30, TimeUnit.SECONDS).writeTimeout(30, TimeUnit.SECONDS).hostnameVerifier((hostname, session) -> true).sslSocketFactory(new SSLCompat(), SSLCompat.TM);
     }
 
     private static OkHttpClient client() {
@@ -117,33 +111,5 @@ public class OkHttp {
         } catch (Throwable e) {
             return Dns.SYSTEM;
         }
-    }
-
-    private static SSLContext getSSLContext() {
-        try {
-            SSLContext context = SSLContext.getInstance("TLS");
-            context.init(null, new TrustManager[]{trustAllCertificates()}, new SecureRandom());
-            return context;
-        } catch (Throwable e) {
-            return null;
-        }
-    }
-
-    @SuppressLint({"TrustAllX509TrustManager", "CustomX509TrustManager"})
-    private static X509TrustManager trustAllCertificates() {
-        return new X509TrustManager() {
-            @Override
-            public void checkClientTrusted(X509Certificate[] chain, String authType) {
-            }
-
-            @Override
-            public void checkServerTrusted(X509Certificate[] chain, String authType) {
-            }
-
-            @Override
-            public X509Certificate[] getAcceptedIssuers() {
-                return new X509Certificate[0];
-            }
-        };
     }
 }

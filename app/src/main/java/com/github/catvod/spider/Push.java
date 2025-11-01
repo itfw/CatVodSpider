@@ -1,5 +1,6 @@
 package com.github.catvod.spider;
 
+import android.content.Context;
 import android.net.Uri;
 import android.text.TextUtils;
 
@@ -7,6 +8,7 @@ import com.github.catvod.bean.Result;
 import com.github.catvod.bean.Sub;
 import com.github.catvod.bean.Vod;
 import com.github.catvod.crawler.Spider;
+import com.github.catvod.crawler.SpiderDebug;
 import com.github.catvod.net.OkHttp;
 import com.github.catvod.utils.Image;
 import com.github.catvod.utils.Util;
@@ -18,19 +20,54 @@ import java.util.List;
 
 public class Push extends Spider {
 
+    private Cloud cloud;
+
+    public Push() {
+        cloud = new Cloud();
+    }
+
+    @Override
+    public void init(Context context, String extend) {
+        try {
+            cloud.init(context, extend);
+        } catch (Exception e) {
+            SpiderDebug.log("Cloud init error: " + e.getMessage());
+        }
+    }
+
     @Override
     public String detailContent(List<String> ids) throws Exception {
-        return Result.string(vod(ids.get(0)));
+        String url = ids.get(0);
+
+        // 使用Cloud类处理各种云盘链接
+        String cloudResult = cloud.detailContent(ids);
+        if (cloudResult != null) {
+            return cloudResult;
+        }
+
+        // 如果不是云盘链接，返回普通链接处理结果
+        return Result.string(vod(url));
     }
 
     @Override
     public String playerContent(String flag, String id, List<String> vipFlags) {
-        if (id.contains("://") && id.contains("***")) id = id.replace("***", "#");
+        try {
+            // 使用Cloud类处理云盘链接的播放
+            String cloudResult = cloud.playerContent(flag, id, vipFlags);
+            if (cloudResult != null) {
+                return cloudResult;
+            }
+        } catch (Exception e) {
+            SpiderDebug.log("Cloud playerContent error: " + e.getMessage());
+        }
+
+        // 原有逻辑处理其他类型链接
+        if (id.startsWith("http") && id.contains("***")) id = id.replace("***", "#");
         if (flag.equals("直連")) return Result.get().url(id).subs(getSubs(id)).string();
         if (flag.equals("解析")) return Result.get().parse().jx().url(id).string();
         if (flag.equals("嗅探")) return Result.get().parse().url(id).string();
         if (flag.equals("迅雷")) return Result.get().url(id).string();
-        return "";
+        return Result.get().url(id).string();
     }
 
     private Vod vod(String url) {
@@ -38,8 +75,8 @@ public class Push extends Spider {
         vod.setVodId(url);
         vod.setVodPic(Image.PUSH);
         vod.setTypeName("FongMi");
-        vod.setVodName(url.startsWith("file://") ? new File(url).getName() : "");
-        if (url.contains("://") && url.contains("#")) url = url.replace("#", "***");
+        vod.setVodName(url.startsWith("file://") ? new File(url).getName() : url);
+        if (url.startsWith("http") && url.contains("#")) url = url.replace("#", "***");
         if (Util.isThunder(url)) {
             vod.setVodPlayUrl(url);
             vod.setVodPlayFrom("迅雷");

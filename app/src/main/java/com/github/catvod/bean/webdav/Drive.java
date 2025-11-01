@@ -8,16 +8,17 @@ import com.github.catvod.bean.Vod;
 import com.github.catvod.utils.Util;
 import com.google.gson.Gson;
 import com.google.gson.annotations.SerializedName;
-import com.google.gson.reflect.TypeToken;
 import com.thegrizzlylabs.sardineandroid.DavResource;
 import com.thegrizzlylabs.sardineandroid.Sardine;
 import com.thegrizzlylabs.sardineandroid.impl.OkHttpSardine;
 
-import java.lang.reflect.Type;
+import java.util.ArrayList;
 import java.util.List;
 
 public class Drive {
 
+    @SerializedName("drives")
+    private List<Drive> drives;
     @SerializedName("name")
     private String name;
     @SerializedName("server")
@@ -28,16 +29,19 @@ public class Drive {
     private String pass;
     @SerializedName("path")
     private String path;
-
+    @SerializedName("webdav")
     private Sardine webdav;
 
-    public static List<Drive> arrayFrom(String str) {
-        Type listType = new TypeToken<List<Drive>>() {}.getType();
-        return new Gson().fromJson(str, listType);
+    public static Drive objectFrom(String str) {
+        return new Gson().fromJson(str, Drive.class);
     }
 
     public Drive(String name) {
         this.name = name;
+    }
+
+    public List<Drive> getDrives() {
+        return drives == null ? new ArrayList<>() : drives;
     }
 
     public String getName() {

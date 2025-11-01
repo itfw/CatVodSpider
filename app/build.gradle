@@ -1,23 +1,26 @@
 plugins {
     id 'com.android.application'
     id 'ru.cleverpumpkin.proguard-dictionaries-generator'
-}
+    id 'org.jetbrains.kotlin.android'
 
+}
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+}
 android {
     namespace 'com.github.catvod'
 
-    compileSdk {
-        version = release(36)
-    }
+    compileSdk 34
 
     defaultConfig {
         applicationId "com.github.catvod.demo"
-        minSdk 21
-        targetSdk 36
-    }
+        minSdk 16
+        targetSdk 34
+        ndk { abiFilters "arm64-v8a" }
 
-    buildFeatures {
-        viewBinding true
+
     }
 
     buildTypes {
@@ -34,23 +37,64 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_17
-        targetCompatibility JavaVersion.VERSION_17
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
     }
+    testOptions {
+        unitTests.returnDefaultValues = true
+        unitTests.includeAndroidResources = true
+    }
+    kotlinOptions {
+        jvmTarget = "11"
+
+    }
+    packagingOptions {
+
+        exclude 'META-INF/*'
+
+    }
+
 
     configurations.configureEach {
         resolutionStrategy {
-            force 'com.squareup.okhttp3:okhttp:' + okhttpVersion
+            force 'com.squareup.okhttp3:okhttp:3.12.13'
         }
     }
 }
 
 dependencies {
-    implementation 'com.squareup.okhttp3:okhttp:' + okhttpVersion
     implementation 'com.github.thegrizzlylabs:sardine-android:0.9'
-    implementation 'wang.harlon.quickjs:wrapper-android:3.2.3'
-    implementation 'com.google.code.gson:gson:2.13.2'
-    implementation 'com.hierynomus:smbj:0.14.0'
+    implementation 'wang.harlon.quickjs:wrapper-android:2.0.0'
+    implementation 'com.squareup.okhttp3:okhttp:3.12.13'
+    implementation 'com.google.code.gson:gson:2.11.0'
+    implementation 'cn.wanghaomiao:JsoupXpath:2.5.1'
+    implementation 'com.google.zxing:core:3.3.0'
     implementation 'com.orhanobut:logger:2.2.0'
-    implementation 'org.jsoup:jsoup:1.21.2'
+    implementation 'org.jsoup:jsoup:1.15.3'
+    implementation 'androidx.core:core-ktx:1.10.1'
+    testImplementation "io.github.dokar3:quickjs-kt-jvm:1.0.0-alpha13"
+    testImplementation 'org.nanohttpd:nanohttpd:2.3.1'
+    implementation 'commons-codec:commons-codec:1.17.1'
+
+    // Required -- JUnit 4 framework
+    testImplementation 'junit:junit:4.12'
+    // Optional -- Mockito framework（可选，用于模拟一些依赖对象，以达到隔离依赖的效果）
+    testImplementation 'org.mockito:mockito-core:5.12.0'
+    testImplementation "org.robolectric:robolectric:4.13"
+    testImplementation 'cn.hutool:hutool-all:5.8.26'
+
+
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1"
+    // https://mvnrepository.com/artifact/com.sun.net.httpserver/http
+ /*   implementation(files("libs/sun-common-server.jar"))
+    implementation("com.sun.net.httpserver:http:20070405")*/
+    //  implementation("com.hibegin:simplewebserver:0.1.15")
+    //implementation("com.github.codeborne.klite:klite-server:1.7.0")
+
+
+    //implementation 'wang.harlon.quickjs:wrapper-java:1.0.0'
+    // implementation(ext: 'aar', name: 'quickjs', group: 'fongmi', version: 'release')
+    // api 'wang.harlon.quickjs:wrapper-android:2.0.0'
+
+
 }
